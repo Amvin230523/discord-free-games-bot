@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from epic_games import get_epic_free_games
 from steam_games import get_steam_free_games
 from keep_alive import keep_alive
+import asyncio
+import traceback
 
 # Load environment variables
 load_dotenv()
@@ -83,6 +85,98 @@ async def on_ready():
     if not check_free_games.is_running():
         check_free_games.start()
         print(f'Started checking for free games every {CHECK_INTERVAL} hour(s)')
+
+    # Extra debug: list registered app commands
+    for cmd in bot.tree.get_commands():
+        print(f"Registered slash command: /{cmd.name} - {cmd.description}")
+
+@bot.event
+async def on_guild_join(guild):
+    """When bot joins a new server, send current free games to the first available channel"""
+    print(f"Bot joined new server: {guild.name} (ID: {guild.id})")
+    
+    # Find a channel where we can send messages
+    target_channel = None
+    
+    # Try to find system channel first
+    if guild.system_channel and guild.system_channel.permissions_for(guild.me).send_messages:
+        target_channel = guild.system_channel
+    else:
+        # Find first text channel where bot can send messages
+        for channel in guild.text_channels:
+            if channel.permissions_for(guild.me).send_messages:
+                target_channel = channel
+                break
+    
+    if not target_channel:
+        print(f"  ✗ Could not find a channel to send welcome message in {guild.name}")
+        return
+    
+    # Send welcome message
+    welcome_embed = discord.Embed(
+        title="🎮 Thanks for adding Free Games Bot!",
+        description="I'll automatically notify you when new free games are available on Epic Games and Steam!",
+        color=0x00FF00,
+        timestamp=datetime.now()
+    )
+    
+    welcome_embed.add_field(
+        name="⚙️ Getting Started",
+        value=(
+            f"I check for free games every **{CHECK_INTERVAL} hour(s)**.\n"
+            "Use `/commands` to see all available commands!\n"
+            "Or use `!help_freegames` for detailed help."
+        ),
+        inline=False
+    )
+    
+    welcome_embed.add_field(
+        name="📢 Set Up Notifications",
+        value=(
+            "Want notifications in a specific channel?\n"
+            "Edit `config.json` and set your preferred channel ID."
+        ),
+        inline=False
+    )
+    
+    welcome_embed.set_footer(text="Free Games Notifier")
+    
+    try:
+        await target_channel.send(embed=welcome_embed)
+        print(f"  ✓ Sent welcome message to #{target_channel.name}")
+    except Exception as e:
+        print(f"  ✗ Failed to send welcome message: {e}")
+    
+    # Fetch and send current free games
+    try:
+        print(f"  Fetching current free games for {guild.name}...")
+        
+        # Epic Games
+        epic_games = get_epic_free_games()
+        if epic_games:
+            await target_channel.send("🎮 **Current Epic Games Free Games:**")
+            for game in epic_games:
+                embed = create_embed(game, 'Epic Games')
+                await target_channel.send(embed=embed)
+                await asyncio.sleep(0.5)
+            print(f"  ✓ Sent {len(epic_games)} Epic game(s)")
+        
+        # Steam Games
+        steam_games = get_steam_free_games()
+        if steam_games:
+            await target_channel.send("🎮 **Current Steam Free Games:**")
+            for game in steam_games:
+                embed = create_embed(game, 'Steam')
+                await target_channel.send(embed=embed)
+                await asyncio.sleep(0.5)
+            print(f"  ✓ Sent {len(steam_games)} Steam game(s)")
+        
+        if not epic_games and not steam_games:
+            await target_channel.send("Currently no free games available, but I'll notify you when new ones appear! 👀")
+            
+    except Exception as e:
+        print(f"  ✗ Error fetching/sending free games: {e}")
+        await target_channel.send("⚠️ I had trouble fetching current free games, but I'll keep checking automatically!")
 
 @bot.event
 async def on_message(message):
@@ -233,6 +327,33 @@ async def help_command(ctx):
     await ctx.send(embed=embed)
 
 # Slash Commands
+##############################
+# Helpers & Error Handling
+##############################
+
+async def _send_embed_list(interaction: discord.Interaction, games, platform: str):
+    """Send a list of game embeds for a platform, chunking to avoid rate limits."""
+    if not games:
+        await interaction.followup.send(f"No free games currently available on {platform}.")
+        return
+    # Discord rate limiting: send sequentially
+    for game in games:
+        embed = create_embed(game, platform)
+        await interaction.followup.send(embed=embed)
+        await asyncio.sleep(0.3)  # small delay to be gentle
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: Exception):
+    """Global error handler for app (slash) commands."""
+    print("[Slash Command Error]", repr(error))
+    traceback.print_exception(type(error), error, error.__traceback__)
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send("⚠️ An error occurred while processing that command.", ephemeral=True)
+        else:
+            await interaction.response.send_message("⚠️ An error occurred while processing that command.", ephemeral=True)
+    except Exception as send_err:
+        print("[Error sending error message]", send_err)
 @bot.tree.command(name="commands", description="Show all available bot commands")
 async def slash_commands(interaction: discord.Interaction):
     """Show all available commands using slash command"""
@@ -283,36 +404,43 @@ async def slash_commands(interaction: discord.Interaction):
 @bot.tree.command(name="epicgames", description="Show current Epic Games free games")
 async def slash_epic(interaction: discord.Interaction):
     """Show current Epic Games free games via slash command"""
-    await interaction.response.defer()
-    
+    print("[/epicgames invoked]")
     try:
-        games = get_epic_free_games()
-        if not games:
-            await interaction.followup.send("No free games currently available on Epic Games Store.")
+        await interaction.response.defer(thinking=True)
+        # Timeout the fetch so we always answer
+        try:
+            games = await asyncio.wait_for(asyncio.to_thread(get_epic_free_games), timeout=12)
+        except asyncio.TimeoutError:
+            await interaction.followup.send("⏱️ Timed out fetching Epic Games data. Please try again in a moment.", ephemeral=True)
             return
-        
-        for game in games:
-            embed = create_embed(game, 'Epic Games')
-            await interaction.followup.send(embed=embed)
+        await _send_embed_list(interaction, games, 'Epic Games')
     except Exception as e:
-        await interaction.followup.send(f"Error fetching Epic Games: {e}")
+        print(f"[/epicgames error] {e}")
+        traceback.print_exception(type(e), e, e.__traceback__)
+        if interaction.response.is_done():
+            await interaction.followup.send("⚠️ Error fetching Epic Games.", ephemeral=True)
+        else:
+            await interaction.response.send_message("⚠️ Error fetching Epic Games.", ephemeral=True)
 
 @bot.tree.command(name="steamgames", description="Show current Steam free games")
 async def slash_steam(interaction: discord.Interaction):
     """Show current Steam free games via slash command"""
-    await interaction.response.defer()
-    
+    print("[/steamgames invoked]")
     try:
-        games = get_steam_free_games()
-        if not games:
-            await interaction.followup.send("No free games currently available on Steam.")
+        await interaction.response.defer(thinking=True)
+        try:
+            games = await asyncio.wait_for(asyncio.to_thread(get_steam_free_games), timeout=15)
+        except asyncio.TimeoutError:
+            await interaction.followup.send("⏱️ Timed out fetching Steam data. Please try again shortly.", ephemeral=True)
             return
-        
-        for game in games:
-            embed = create_embed(game, 'Steam')
-            await interaction.followup.send(embed=embed)
+        await _send_embed_list(interaction, games, 'Steam')
     except Exception as e:
-        await interaction.followup.send(f"Error fetching Steam games: {e}")
+        print(f"[/steamgames error] {e}")
+        traceback.print_exception(type(e), e, e.__traceback__)
+        if interaction.response.is_done():
+            await interaction.followup.send("⚠️ Error fetching Steam games.", ephemeral=True)
+        else:
+            await interaction.response.send_message("⚠️ Error fetching Steam games.", ephemeral=True)
 
 # Run the bot
 if __name__ == "__main__":
