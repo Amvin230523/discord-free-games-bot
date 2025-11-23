@@ -9,6 +9,7 @@ from steam_games import get_steam_free_games
 from keep_alive import keep_alive
 import asyncio
 import traceback
+import re
 
 # Load environment variables
 load_dotenv()
@@ -41,32 +42,203 @@ def save_database(db):
     with open(DB_FILE, 'w') as f:
         json.dump(db, f, indent=2)
 
-def create_embed(game, platform):
-    """Create a rich embed for game announcement"""
-    color = 0x0078F2 if platform == 'Epic Games' else 0x171A21  # Epic blue or Steam dark
+# Currency conversion rates (USD base)
+CURRENCY_RATES = {
+    'USD': {'symbol': '$', 'rate': 1.0, 'name': 'US Dollar'},
+    'EUR': {'symbol': '€', 'rate': 0.92, 'name': 'Euro'},
+    'GBP': {'symbol': '£', 'rate': 0.79, 'name': 'British Pound'},
+    'CAD': {'symbol': 'C$', 'rate': 1.36, 'name': 'Canadian Dollar'},
+    'AUD': {'symbol': 'A$', 'rate': 1.53, 'name': 'Australian Dollar'},
+    'JPY': {'symbol': '¥', 'rate': 149.50, 'name': 'Japanese Yen'},
+    'INR': {'symbol': '₹', 'rate': 83.12, 'name': 'Indian Rupee'},
+    'BRL': {'symbol': 'R$', 'rate': 4.97, 'name': 'Brazilian Real'},
+    'MXN': {'symbol': 'MX$', 'rate': 17.08, 'name': 'Mexican Peso'},
+    'PHP': {'symbol': '₱', 'rate': 55.50, 'name': 'Philippine Peso'},
+}
+
+# Map Discord locales to currencies
+LOCALE_TO_CURRENCY = {
+    'en-US': 'USD', 'en-GB': 'GBP', 'en-AU': 'AUD', 'en-CA': 'CAD',
+    'es-ES': 'EUR', 'fr': 'EUR', 'de': 'EUR', 'it': 'EUR', 'nl': 'EUR',
+    'pt-BR': 'BRL', 'ja': 'JPY', 'ko': 'USD', 'zh-CN': 'USD',
+    'zh-TW': 'USD', 'ru': 'USD', 'pl': 'EUR', 'tr': 'USD',
+    'hi': 'INR', 'th': 'USD', 'sv-SE': 'EUR', 'no': 'EUR',
+    'da': 'EUR', 'fi': 'EUR', 'cs': 'EUR', 'ro': 'EUR',
+    'es-MX': 'MXN', 'fil': 'PHP',
+}
+
+def convert_price(price_str, target_currency='USD'):
+    """Convert price string to target currency"""
+    if not price_str or price_str in ['Free', 'Paid Game', 'Full Game Access']:
+        return price_str
     
+    # Extract number from price string
+    match = re.search(r'[\d.]+', price_str)
+    if not match:
+        return price_str
+    
+    try:
+        usd_amount = float(match.group())
+        currency_info = CURRENCY_RATES.get(target_currency, CURRENCY_RATES['USD'])
+        converted = usd_amount * currency_info['rate']
+        
+        # Format based on currency
+        if target_currency == 'JPY':
+            return f"{currency_info['symbol']}{int(converted)}"
+        else:
+            return f"{currency_info['symbol']}{converted:.2f}"
+    except:
+        return price_str
+
+def get_user_currency(interaction: discord.Interaction = None):
+    """Detect user's currency from their Discord locale"""
+    if interaction and hasattr(interaction, 'locale'):
+        locale = str(interaction.locale)
+        return LOCALE_TO_CURRENCY.get(locale, 'USD')
+    return 'USD'
+
+def create_embed(game, platform, currency='USD'):
+    """Create a modern rich embed for game announcement"""
+    # Modern color scheme
+    color_map = {
+        'Epic Games': 0x2E3440,  # Dark modern gray
+        'Steam': 0x1B2838,       # Steam's dark blue-gray
+    }
+    color = color_map.get(platform, 0x2E3440)
+    
+    # Create embed with modern styling
     embed = discord.Embed(
-        title=f"🎉 Free Game Alert!",
-        description=f"**{game['title']}** is now FREE on {platform}!",
+        title="",  # Empty title for cleaner look
+        description="",  # Will add content below
         color=color,
         timestamp=datetime.now()
     )
     
-    if game.get('description'):
-        embed.add_field(name="About", value=game['description'][:200] + "..." if len(game['description']) > 200 else game['description'], inline=False)
+    # Add game title as author for modern look
+    embed.set_author(
+        name=f"🎮 {game['title']}",
+        icon_url="https://cdn.discordapp.com/emojis/1234567890.png" if platform == 'Epic Games' else None
+    )
     
-    if game.get('end_date'):
-        embed.add_field(name="⏰ Available Until", value=game['end_date'], inline=True)
+    # Main description with platform badge
+    platform_emoji = "🏪" if platform == "Epic Games" else "⚙️"
+    status_badge = "```ansi\n\u001b[0;32m● FREE NOW\u001b[0m\n```"
+    
+    embed.description = f"{platform_emoji} **{platform}**\n{status_badge}"
+    
+    # Add description in a modern card style
+    if game.get('description'):
+        desc_text = game['description'][:180] + "..." if len(game['description']) > 180 else game['description']
+        embed.add_field(
+            name="📝 About",
+            value=f">>> {desc_text}",
+            inline=False
+        )
+    
+    # Price and availability in a compact row
+    info_row = []
     
     if game.get('original_price'):
-        embed.add_field(name="💰 Original Price", value=game['original_price'], inline=True)
+        converted_price = convert_price(game['original_price'], currency)
+        currency_name = CURRENCY_RATES.get(currency, {}).get('name', currency)
+        info_row.append(f"💰 ~~{converted_price}~~ **FREE**")
     
-    embed.add_field(name="🔗 Get It Now", value=f"[Click here]({game['url']})", inline=False)
+    if game.get('end_date'):
+        info_row.append(f"⏰ Until **{game['end_date']}**")
     
+    if info_row:
+        embed.add_field(
+            name="💎 Deal Information",
+            value="\n".join(info_row),
+            inline=False
+        )
+    
+    # Modern CTA button style
+    embed.add_field(
+        name="",
+        value=f"### [🎁 Claim Now →]({game['url']})\n*Click above to get this game for free!*",
+        inline=False
+    )
+    
+    # Set thumbnail/image
     if game.get('image'):
         embed.set_image(url=game['image'])
     
-    embed.set_footer(text=f"{platform} Free Game Notifier")
+    # Modern footer
+    platform_icon = "🎮" if platform == "Epic Games" else "⚙️"
+    embed.set_footer(
+        text=f"{platform_icon} Free Games Notifier • Powered by {platform}",
+        icon_url=None
+    )
+    
+    return embed
+
+def create_modern_help_embed(currency='USD'):
+    """Create modern help embed"""
+    embed = discord.Embed(
+        title="",
+        description="",
+        color=0x5865F2,  # Discord blurple
+        timestamp=datetime.now()
+    )
+    
+    embed.set_author(
+        name="🎮 Free Games Bot",
+        icon_url=None
+    )
+    
+    embed.description = """
+    ```ansi
+\u001b[0;36m● ACTIVE\u001b[0m Your automated free games notifier
+    ```
+    
+    I automatically scan **Epic Games** and **Steam** for free games and notify you instantly!
+    
+    🌍 Prices shown in **{currency}** based on your location
+    """.format(currency=CURRENCY_RATES.get(currency, {}).get('name', currency))
+    
+    # Commands section
+    embed.add_field(
+        name="⚡ Quick Commands",
+        value=(
+            "```\n"
+            "/commands     • View all commands\n"
+            "/epicgames    • Check Epic store\n"
+            "/steamgames   • Check Steam store\n"
+            "```"
+        ),
+        inline=False
+    )
+    
+    # Text commands
+    embed.add_field(
+        name="💬 Text Commands",
+        value=(
+            "> `!epicgames` • `!steamgames`\n"
+            "> `!checkgames` (Admin)\n"
+            "> `!cleardb` (Admin)"
+        ),
+        inline=False
+    )
+    
+    # Features
+    embed.add_field(
+        name="✨ Features",
+        value=(
+            "```yaml\n"
+            "Scan Interval: Every 1 hour\n"
+            "Platforms: Epic Games + Steam\n"
+            "Smart Detection: No duplicates\n"
+            "Auto Currency: Based on locale\n"
+            "```"
+        ),
+        inline=False
+    )
+    
+    embed.set_footer(
+        text="🎮 Free Games Notifier • Always Free",
+        icon_url=None
+    )
     
     return embed
 
@@ -114,32 +286,45 @@ async def on_guild_join(guild):
     
     # Send welcome message
     welcome_embed = discord.Embed(
-        title="🎮 Thanks for adding Free Games Bot!",
-        description="I'll automatically notify you when new free games are available on Epic Games and Steam!",
-        color=0x00FF00,
+        title="",
+        description="",
+        color=0x5865F2,
         timestamp=datetime.now()
     )
     
+    welcome_embed.set_author(name="🎮 Welcome to Free Games Bot!")
+    
+    welcome_embed.description = """
+    ```ansi
+\u001b[0;32m✓ Successfully Added\u001b[0m
+    ```
+    
+    Thanks for adding me! I'll automatically notify you when new free games drop on **Epic Games** and **Steam**.
+    """
+    
     welcome_embed.add_field(
-        name="⚙️ Getting Started",
+        name="⚡ Quick Start",
         value=(
-            f"I check for free games every **{CHECK_INTERVAL} hour(s)**.\n"
-            "Use `/commands` to see all available commands!\n"
-            "Or use `!help_freegames` for detailed help."
+            "```yaml\n"
+            f"Auto-Check: Every {CHECK_INTERVAL} hour(s)\n"
+            "Platforms: Epic Games + Steam\n"
+            "Commands: Use /commands\n"
+            "```"
         ),
         inline=False
     )
     
     welcome_embed.add_field(
-        name="📢 Set Up Notifications",
+        name="🎯 What's Next?",
         value=(
-            "Want notifications in a specific channel?\n"
-            "Edit `config.json` and set your preferred channel ID."
+            "> Use `/commands` to see all available commands\n"
+            "> Use `/epicgames` or `/steamgames` anytime\n"
+            "> I'll post in this channel when new games are free!"
         ),
         inline=False
     )
     
-    welcome_embed.set_footer(text="Free Games Notifier")
+    welcome_embed.set_footer(text="🎮 Free Games Notifier • Let's find some free games!")
     
     try:
         await target_channel.send(embed=welcome_embed)
@@ -154,9 +339,14 @@ async def on_guild_join(guild):
         # Epic Games
         epic_games = get_epic_free_games()
         if epic_games:
-            await target_channel.send("🎮 **Current Epic Games Free Games:**")
+            header_embed = discord.Embed(
+                description="```ansi\n\u001b[0;34m🏪 EPIC GAMES STORE\u001b[0m\n```",
+                color=0x2E3440
+            )
+            await target_channel.send(embed=header_embed)
+            
             for game in epic_games:
-                embed = create_embed(game, 'Epic Games')
+                embed = create_embed(game, 'Epic Games', 'USD')
                 await target_channel.send(embed=embed)
                 await asyncio.sleep(0.5)
             print(f"  ✓ Sent {len(epic_games)} Epic game(s)")
@@ -164,15 +354,24 @@ async def on_guild_join(guild):
         # Steam Games
         steam_games = get_steam_free_games()
         if steam_games:
-            await target_channel.send("🎮 **Current Steam Free Games:**")
+            header_embed = discord.Embed(
+                description="```ansi\n\u001b[0;36m⚙️ STEAM STORE\u001b[0m\n```",
+                color=0x1B2838
+            )
+            await target_channel.send(embed=header_embed)
+            
             for game in steam_games:
-                embed = create_embed(game, 'Steam')
+                embed = create_embed(game, 'Steam', 'USD')
                 await target_channel.send(embed=embed)
                 await asyncio.sleep(0.5)
             print(f"  ✓ Sent {len(steam_games)} Steam game(s)")
         
         if not epic_games and not steam_games:
-            await target_channel.send("Currently no free games available, but I'll notify you when new ones appear! 👀")
+            no_games_embed = discord.Embed(
+                description="```ansi\n\u001b[0;33m⏳ No free games right now\u001b[0m\n```\nBut I'll notify you the moment something drops!",
+                color=0xFEE75C
+            )
+            await target_channel.send(embed=no_games_embed)
             
     except Exception as e:
         print(f"  ✗ Error fetching/sending free games: {e}")
@@ -299,31 +498,7 @@ async def clear_database(ctx):
 @bot.command(name='help_freegames')
 async def help_command(ctx):
     """Show help information"""
-    embed = discord.Embed(
-        title="🎮 Free Games Bot - Help",
-        description="I automatically check for free games on Epic Games Store and Steam!",
-        color=0x00FF00
-    )
-    
-    embed.add_field(
-        name="📋 Commands",
-        value=(
-            "`!epicgames` - Show current Epic free games\n"
-            "`!steamgames` - Show current Steam free games\n"
-            "`!checkgames` - Manually check now (Admin)\n"
-            "`!cleardb` - Reset announcement history (Admin)\n"
-            "`!help_freegames` - Show this help message\n"
-            "`/commands` - Show all commands (slash command)"
-        ),
-        inline=False
-    )
-    
-    embed.add_field(
-        name="⚙️ How it works",
-        value=f"I check for new free games every {CHECK_INTERVAL} hour(s) and announce them automatically!",
-        inline=False
-    )
-    
+    embed = create_modern_help_embed('USD')
     await ctx.send(embed=embed)
 
 # Slash Commands
@@ -334,11 +509,19 @@ async def help_command(ctx):
 async def _send_embed_list(interaction: discord.Interaction, games, platform: str):
     """Send a list of game embeds for a platform, chunking to avoid rate limits."""
     if not games:
-        await interaction.followup.send(f"No free games currently available on {platform}.")
+        embed = discord.Embed(
+            description=f"```ansi\n\u001b[0;33m⚠ No free games available\u001b[0m\n```\nNo free games currently on {platform}, but I'm checking every hour!",
+            color=0xFEE75C
+        )
+        await interaction.followup.send(embed=embed)
         return
+    
+    # Detect user currency
+    currency = get_user_currency(interaction)
+    
     # Discord rate limiting: send sequentially
     for game in games:
-        embed = create_embed(game, platform)
+        embed = create_embed(game, platform, currency)
         await interaction.followup.send(embed=embed)
         await asyncio.sleep(0.3)  # small delay to be gentle
 
@@ -357,48 +540,8 @@ async def on_app_command_error(interaction: discord.Interaction, error: Exceptio
 @bot.tree.command(name="commands", description="Show all available bot commands")
 async def slash_commands(interaction: discord.Interaction):
     """Show all available commands using slash command"""
-    embed = discord.Embed(
-        title="🎮 Free Games Bot - Commands",
-        description="Here are all the commands you can use!",
-        color=0x00FF00,
-        timestamp=datetime.now()
-    )
-    
-    # User Commands
-    embed.add_field(
-        name="👥 Everyone Can Use",
-        value=(
-            "`!epicgames` - Show current Epic Games free games\n"
-            "`!steamgames` - Show current Steam free games\n"
-            "`!help_freegames` - Show detailed help\n"
-            "`/commands` - Show this command list"
-        ),
-        inline=False
-    )
-    
-    # Admin Commands
-    embed.add_field(
-        name="🛡️ Admin Only",
-        value=(
-            "`!checkgames` - Manually trigger free games check\n"
-            "`!cleardb` - Clear announcement history (re-announce all games)"
-        ),
-        inline=False
-    )
-    
-    # Bot Info
-    embed.add_field(
-        name="ℹ️ Bot Info",
-        value=(
-            f"🔄 Checks for games every **{CHECK_INTERVAL} hour(s)**\n"
-            f"🎯 Announces only **new** free games\n"
-            f"🎮 Supports **Epic Games** & **Steam**"
-        ),
-        inline=False
-    )
-    
-    embed.set_footer(text="Free Games Notifier", icon_url=bot.user.avatar.url if bot.user.avatar else None)
-    
+    currency = get_user_currency(interaction)
+    embed = create_modern_help_embed(currency)
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="epicgames", description="Show current Epic Games free games")
