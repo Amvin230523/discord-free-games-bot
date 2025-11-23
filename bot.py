@@ -47,7 +47,7 @@ def create_embed(game, platform):
         title=f"🎉 Free Game Alert!",
         description=f"**{game['title']}** is now FREE on {platform}!",
         color=color,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now()
     )
     
     if game.get('description'):
@@ -72,6 +72,14 @@ def create_embed(game, platform):
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
     print(f'Bot is in {len(bot.guilds)} server(s)')
+    
+    # Sync slash commands with Discord
+    try:
+        synced = await bot.tree.sync()
+        print(f'Synced {len(synced)} slash command(s)')
+    except Exception as e:
+        print(f'Failed to sync commands: {e}')
+    
     if not check_free_games.is_running():
         check_free_games.start()
         print(f'Started checking for free games every {CHECK_INTERVAL} hour(s)')
@@ -210,7 +218,8 @@ async def help_command(ctx):
             "`!steamgames` - Show current Steam free games\n"
             "`!checkgames` - Manually check now (Admin)\n"
             "`!cleardb` - Reset announcement history (Admin)\n"
-            "`!help_freegames` - Show this help message"
+            "`!help_freegames` - Show this help message\n"
+            "`/commands` - Show all commands (slash command)"
         ),
         inline=False
     )
@@ -222,6 +231,88 @@ async def help_command(ctx):
     )
     
     await ctx.send(embed=embed)
+
+# Slash Commands
+@bot.tree.command(name="commands", description="Show all available bot commands")
+async def slash_commands(interaction: discord.Interaction):
+    """Show all available commands using slash command"""
+    embed = discord.Embed(
+        title="🎮 Free Games Bot - Commands",
+        description="Here are all the commands you can use!",
+        color=0x00FF00,
+        timestamp=datetime.now()
+    )
+    
+    # User Commands
+    embed.add_field(
+        name="👥 Everyone Can Use",
+        value=(
+            "`!epicgames` - Show current Epic Games free games\n"
+            "`!steamgames` - Show current Steam free games\n"
+            "`!help_freegames` - Show detailed help\n"
+            "`/commands` - Show this command list"
+        ),
+        inline=False
+    )
+    
+    # Admin Commands
+    embed.add_field(
+        name="🛡️ Admin Only",
+        value=(
+            "`!checkgames` - Manually trigger free games check\n"
+            "`!cleardb` - Clear announcement history (re-announce all games)"
+        ),
+        inline=False
+    )
+    
+    # Bot Info
+    embed.add_field(
+        name="ℹ️ Bot Info",
+        value=(
+            f"🔄 Checks for games every **{CHECK_INTERVAL} hour(s)**\n"
+            f"🎯 Announces only **new** free games\n"
+            f"🎮 Supports **Epic Games** & **Steam**"
+        ),
+        inline=False
+    )
+    
+    embed.set_footer(text="Free Games Notifier", icon_url=bot.user.avatar.url if bot.user.avatar else None)
+    
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="epicgames", description="Show current Epic Games free games")
+async def slash_epic(interaction: discord.Interaction):
+    """Show current Epic Games free games via slash command"""
+    await interaction.response.defer()
+    
+    try:
+        games = get_epic_free_games()
+        if not games:
+            await interaction.followup.send("No free games currently available on Epic Games Store.")
+            return
+        
+        for game in games:
+            embed = create_embed(game, 'Epic Games')
+            await interaction.followup.send(embed=embed)
+    except Exception as e:
+        await interaction.followup.send(f"Error fetching Epic Games: {e}")
+
+@bot.tree.command(name="steamgames", description="Show current Steam free games")
+async def slash_steam(interaction: discord.Interaction):
+    """Show current Steam free games via slash command"""
+    await interaction.response.defer()
+    
+    try:
+        games = get_steam_free_games()
+        if not games:
+            await interaction.followup.send("No free games currently available on Steam.")
+            return
+        
+        for game in games:
+            embed = create_embed(game, 'Steam')
+            await interaction.followup.send(embed=embed)
+    except Exception as e:
+        await interaction.followup.send(f"Error fetching Steam games: {e}")
 
 # Run the bot
 if __name__ == "__main__":
