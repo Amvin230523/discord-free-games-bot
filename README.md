@@ -1,287 +1,241 @@
-# 🎮 Discord Free Games Bot
+# Discord Free Games Bot
 
-A Discord bot that automatically checks and announces free games from **Epic Games Store** and **Steam**! Get notifications when games become temporarily free, including Epic's weekly free games and Steam's limited-time 100% off promotions.
+A Discord bot that checks and announces free games from Epic Games Store and Steam.
 
-## ✨ Features
+## Features
 
-- 🔄 **Automatic Checking**: Scans for free games at regular intervals (default: every hour)
-- 🎯 **Epic Games**: Tracks Epic's weekly free games with official API
-- 🎮 **Steam**: Detects temporarily free games and free weekends
-- 🔔 **Smart Notifications**: Only announces new games (no duplicates)
-- 🎨 **Rich Embeds**: Beautiful game announcements with images and details
-- 📌 **Role Pings**: Optional role mentions for notifications
-- 🛠️ **Admin Commands**: Manual checks and database management
-- 💾 **Database**: Tracks announced games to prevent re-posting
+- Automatic scheduled checks for new free games
+- Epic Games support (official promotions endpoint)
+- Steam support (100% discount and temporary free promotions)
+- Duplicate prevention using `announced_games.json`
+- DLC/Add-on indicator in embeds when detected
+- Rich Discord embeds
+- Text commands and slash commands
 
-## 📸 Preview
+## Local Setup
 
-The bot sends rich embeds with:
-- Game title and platform
-- Description
-- Original price
-- Availability end date
-- Direct link to claim
-- Game artwork
+### Requirements
 
-## 🚀 Setup Guide
+- Python 3.8+
+- A Discord bot token
+- A Discord channel ID for announcements
 
-### Prerequisites
+### 1. Create a virtual environment
 
-1. **Python 3.8 or higher** installed
-2. **Discord Bot Token** (see below)
-3. **Discord Channel ID** where announcements will be sent
-
-### Step 1: Create Discord Bot
-
-1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Click **"New Application"** and give it a name
-3. Go to **"Bot"** section on the left
-4. Click **"Add Bot"**
-5. Under **"Token"**, click **"Reset Token"** and copy it (you'll need this!)
-6. Enable these **Privileged Gateway Intents**:
-   - ✅ Server Members Intent
-   - ✅ Message Content Intent
-7. Go to **"OAuth2" > "URL Generator"**
-8. Select scopes:
-   - ✅ `bot`
-   - ✅ `applications.commands`
-9. Select bot permissions:
-   - ✅ Send Messages
-   - ✅ Embed Links
-   - ✅ Read Messages/View Channels
-   - ✅ Mention Everyone (if you want role pings)
-10. Copy the generated URL and open it in your browser to invite the bot to your server
-
-### Step 2: Get Discord Channel ID
-
-1. Enable Developer Mode in Discord:
-   - Settings > Advanced > Developer Mode (ON)
-2. Right-click on the channel where you want announcements
-3. Click **"Copy Channel ID"**
-
-### Step 3: Install the Bot
-
-1. **Download/Clone this project** to your computer
-
-2. **Open PowerShell** in the bot folder:
-   - Right-click in the folder > "Open PowerShell here"
-
-3. **Create a virtual environment** (optional but recommended):
-   ```powershell
-   python -m venv venv
-   .\venv\Scripts\Activate.ps1
-   ```
-
-4. **Install dependencies**:
-   ```powershell
-   pip install -r requirements.txt
-   ```
-
-### Step 4: Configure the Bot
-
-1. **Create a `.env` file** (copy from `.env.example`):
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-
-2. **Edit `.env`** file and add your bot token:
-   ```
-   DISCORD_TOKEN=your_actual_bot_token_here
-   ```
-
-3. **Edit `config.json`** file:
-   ```json
-   {
-     "channel_id": 1234567890123456789,
-     "check_interval_hours": 1,
-     "ping_role_id": null
-   }
-   ```
-   
-   - `channel_id`: Your Discord channel ID (from Step 2)
-   - `check_interval_hours`: How often to check for new games (default: 1 hour)
-   - `ping_role_id`: (Optional) Role ID to ping when new games are found
-     - To get role ID: Right-click role > Copy Role ID
-     - Set to `null` if you don't want pings
-
-### Step 5: Run the Bot
+Windows PowerShell:
 
 ```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+macOS/Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 2. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configure environment variables
+
+Create `.env` from `.env.example`:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Set your token in `.env`:
+
+```env
+DISCORD_TOKEN=your_discord_bot_token_here
+```
+
+Important token rules:
+
+- No quotes around the token
+- No extra spaces before/after `=`
+- Keep only one `DISCORD_TOKEN=` line in `.env`
+- If leaked, reset it immediately in Discord Developer Portal
+
+### 4. Configure Discord bot application
+
+1. Open Discord Developer Portal: `https://discord.com/developers/applications`
+2. Select your application, then open the `Bot` tab
+3. If needed, click `Reset Token` and copy the new token into `.env`
+4. In `Privileged Gateway Intents`, enable:
+  - `Message Content Intent` (required for `!` text commands)
+5. Open `OAuth2` -> `URL Generator`
+6. Select scopes:
+  - `bot`
+  - `applications.commands`
+7. Select bot permissions:
+  - `View Channels`
+  - `Send Messages`
+  - `Embed Links`
+  - `Read Message History`
+  - `Use Slash Commands` (or `Use Application Commands`)
+8. Copy the generated invite URL and invite the bot to your server
+
+### 5. Get the announcement channel ID
+
+1. In Discord, go to `User Settings` -> `Advanced` -> enable `Developer Mode`
+2. Right-click your target channel and click `Copy Channel ID`
+
+### 6. Configure `config.json`
+
+```json
+{
+  "channel_id": 123456789012345678,
+  "check_interval_hours": 1
+}
+```
+
+- `channel_id`: target Discord channel
+- `check_interval_hours`: polling interval
+
+### 7. Run the bot
+
+```bash
 python bot.py
 ```
 
-You should see:
-```
-<YourBotName> has connected to Discord!
-Bot is in X server(s)
-Started checking for free games every 1 hour(s)
-```
+Expected startup output includes:
 
-🎉 **Your bot is now running!**
+- Bot connected to Discord
+- Slash commands synced
+- Background check loop started
 
-## 📋 Bot Commands
+### 8. Verify in Discord
 
-| Command | Description | Permission |
-|---------|-------------|------------|
-| `!epicgames` | Show current Epic free games | Everyone |
-| `!steamgames` | Show current Steam free games | Everyone |
-| `!checkgames` | Manually trigger a check now | Admin |
-| `!cleardb` | Reset announcement history | Admin |
-| `!help_freegames` | Show help information | Everyone |
+- Check the bot is online in your server member list
+- Run `/commands`
+- Run `!epicgames`
+- Confirm the bot can post embeds in your configured channel
 
-## 🌐 Free Hosting Options
+## Full Startup Setup (Windows)
 
-You can run this bot **24/7 for FREE** on these platforms:
+Use this section to make the bot launch automatically when you log in to Windows.
 
-### Option 1: Replit (Easiest)
+### Option A: Startup Folder (recommended, no admin required)
 
-1. Go to [Replit](https://replit.com/)
-2. Create new Repl > Import from GitHub
-3. Add your GitHub repo URL
-4. Set environment variables in Secrets tab:
-   - `DISCORD_TOKEN` = your token
-5. Edit `config.json` with your channel ID
-6. Click Run!
+1. Create a launcher script in `C:\bot_start\start_discord_free_games_bot.cmd`:
 
-**Keep it alive 24/7:**
-- Use [UptimeRobot](https://uptimerobot.com/) to ping your Repl every 5 minutes
-
-### Option 2: Railway.app
-
-1. Sign up at [Railway.app](https://railway.app/)
-2. New Project > Deploy from GitHub
-3. Add environment variable: `DISCORD_TOKEN`
-4. Deploy!
-
-### Option 3: Render.com
-
-1. Sign up at [Render.com](https://render.com/)
-2. New Web Service > Connect GitHub repo
-3. Build Command: `pip install -r requirements.txt`
-4. Start Command: `python bot.py`
-5. Add environment variable: `DISCORD_TOKEN`
-
-### Option 4: Your Computer (Windows)
-
-**Run automatically on startup:**
-
-1. Create a batch file `start_bot.bat`:
-   ```batch
-   @echo off
-   cd "C:\Users\Arvin\Downloads\DC bot"
-   call venv\Scripts\activate.bat
-   python bot.py
-   pause
-   ```
-
-2. Press `Win + R`, type `shell:startup`, press Enter
-3. Create a shortcut to `start_bot.bat` in the Startup folder
-4. Bot will auto-start when Windows boots!
-
-## 🔧 Troubleshooting
-
-### Bot doesn't connect
-- ✅ Check your `DISCORD_TOKEN` in `.env`
-- ✅ Make sure token is valid (not expired)
-- ✅ Bot must be invited to your server
-
-### No announcements
-- ✅ Check `channel_id` in `config.json` is correct
-- ✅ Bot must have permissions to send messages in that channel
-- ✅ Use `!checkgames` to manually trigger a check
-- ✅ Check console for error messages
-
-### Missing images in embeds
-- ✅ Bot needs "Embed Links" permission
-
-### Role pings not working
-- ✅ Bot needs "Mention Everyone" permission
-- ✅ Check `ping_role_id` in `config.json`
-
-### Module not found errors
-- ✅ Run `pip install -r requirements.txt` again
-- ✅ Make sure you're in the correct folder
-
-## 📊 How It Works
-
-### Epic Games
-- Uses Epic's official API endpoint
-- Fetches current promotional offers
-- Filters for games with 100% discount
-- Extracts title, description, images, end dates
-
-### Steam
-- Scrapes Steam's search page for 100% off games
-- Detects temporarily free promotions
-- Identifies free weekend games
-- Parses game details from store listings
-
-### Database
-- Stores announced game IDs in `announced_games.json`
-- Prevents duplicate announcements
-- Can be cleared with `!cleardb` command
-
-## 🎯 Customization
-
-### Change check frequency
-Edit `config.json`:
-```json
-"check_interval_hours": 2  // Check every 2 hours instead of 1
+```bat
+@echo off
+cd /d "D:\Projects\Game bot\discord-free-games-bot"
+"D:\Projects\Game bot\discord-free-games-bot\.venv\Scripts\python.exe" "D:\Projects\Game bot\discord-free-games-bot\bot.py"
 ```
 
-### Modify embed colors
-Edit `bot.py`, function `create_embed()`:
-```python
-color = 0x0078F2  # Epic blue
-color = 0x171A21  # Steam dark
+2. Copy launcher into your user Startup folder:
+
+```powershell
+$startup = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
+Copy-Item "C:\bot_start\start_discord_free_games_bot.cmd" (Join-Path $startup "start_discord_free_games_bot.cmd") -Force
 ```
 
-### Add more platforms
-Create a new module like `steam_games.py`:
-```python
-def get_your_platform_free_games():
-    # Your implementation
-    return games_list
+3. Verify file exists in Startup folder:
+
+```powershell
+$startup = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
+Test-Path (Join-Path $startup "start_discord_free_games_bot.cmd")
 ```
 
-Then import and use it in `bot.py`.
+4. Reboot or sign out/sign in and confirm bot comes online automatically.
 
-## 📝 Notes
+### Option B: Task Scheduler (more control)
 
-- **Epic Games**: Very reliable, uses official API
-- **Steam**: Uses web scraping, may need updates if Steam changes their site
-- **Rate Limits**: Current check interval (1 hour) is safe for both platforms
-- **Accuracy**: Steam detection may have false positives - always verify manually
+Use this if you want Task Scheduler retries/history. Requires permissions that may be blocked by your Windows policy.
 
-## 🤝 Contributing
+1. Open Task Scheduler -> `Create Task`.
+2. `General` tab:
+  - Name: `DiscordFreeGamesBot`
+  - Select `Run only when user is logged on`
+3. `Triggers` tab:
+  - New trigger: `At log on`
+4. `Actions` tab:
+  - Program/script: `powershell.exe`
+  - Add arguments:
+    - `-NoProfile -ExecutionPolicy Bypass -File "D:\Projects\Game bot\discord-free-games-bot\start_bot.ps1"`
+5. Save task.
 
-Feel free to improve the bot:
-- Add more game platforms (GOG, Itch.io, etc.)
-- Improve Steam detection accuracy
-- Add more commands
-- Enhance embed designs
+Command-line equivalent:
 
-## 📄 License
+```powershell
+schtasks /Create /TN "DiscordFreeGamesBot" /TR "C:\bot_start\start_discord_free_games_bot.cmd" /SC ONLOGON /F
+```
 
-This project is free to use and modify. No warranty provided.
+If command returns `Access is denied`, use Option A.
 
-## ⚠️ Legal
+### Disable Startup
 
-- Web scraping is done on public pages only
-- Epic API is unofficial but publicly accessible
-- Use responsibly and respect rate limits
-- This bot is for personal/community use
+To disable auto-start, remove launcher from Startup folder:
 
-## 🆘 Support
+```powershell
+$startup = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
+Remove-Item (Join-Path $startup "start_discord_free_games_bot.cmd") -Force
+```
 
-If you need help:
-1. Check this README carefully
-2. Look at error messages in the console
-3. Verify all configuration files
-4. Make sure Python and dependencies are installed
+Or disable/delete Task Scheduler task:
 
----
+```powershell
+schtasks /Delete /TN "DiscordFreeGamesBot" /F
+```
 
-**Made with ❤️ for free games lovers!**
+## Commands
 
-Enjoy your free games! 🎮
+### Text commands
+
+- `!epicgames`
+- `!steamgames`
+- `!allgames`
+- `!dlconly`
+- `!help_freegames`
+- `!checkgames` (admin)
+- `!cleardb` (admin)
+
+### Slash commands
+
+- `/commands`
+- `/epicgames`
+- `/steamgames`
+- `/allgames`
+- `/dlconly`
+
+## Run Locally 24/7
+
+For true local operation, keep the process running on your machine.
+
+Options:
+
+- Windows Startup folder or Task Scheduler: start at login.
+- NSSM or WinSW: run as a Windows service.
+- Linux systemd service: run/restart automatically.
+- macOS LaunchAgent: launch at login/startup.
+
+Current local setup in this repo:
+
+- Startup launcher: `C:\bot_start\start_discord_free_games_bot.cmd`
+- Copied to user Startup folder: `C:\Users\Arvin\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\start_discord_free_games_bot.cmd`
+
+## Troubleshooting
+
+- Bot does not connect: verify `DISCORD_TOKEN` in `.env`.
+- No announcements: verify `channel_id` and bot channel permissions.
+- Missing embeds/images: ensure `Embed Links` permission is enabled.
+- Module errors: reactivate your virtual env and reinstall requirements.
+
+## Notes
+
+- Epic data source is generally stable.
+- Steam scraping can break if Steam HTML changes.
+- Duplicate prevention only applies to scheduled announcements.
+
+## License
+
+Free to use and modify.

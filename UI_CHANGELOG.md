@@ -158,13 +158,14 @@ User from India → Shows prices in ₹ (INR)
 - Improved text hierarchy
 - Added visual separators
 
-## 🚀 How to Deploy
+## 🚀 How to Run Locally
 
-### On Replit:
+### Update and start
 ```bash
 git pull origin main
+pip install -r requirements.txt
+python bot.py
 ```
-Then click **Run**
 
 ### Test Commands:
 - `/commands` - See the new help design
@@ -220,4 +221,4 @@ Then click **Run**
 
 **Enjoy the new modern look! 🎮**
 
-All changes are live on GitHub: `Amvin230523/discord-free-games-bot`
+All changes can be pulled from GitHub and run locally.

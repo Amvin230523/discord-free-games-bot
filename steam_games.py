@@ -3,6 +3,12 @@ from bs4 import BeautifulSoup
 import re
 from datetime import datetime
 
+def _is_steam_dlc(title, description, game_url):
+    """Infer whether a Steam entry is DLC/add-on content."""
+    text = f"{title} {description} {game_url}".lower()
+    markers = [' dlc', '/dlc/', 'add-on', 'addon', 'expansion', 'season pass', 'soundtrack']
+    return any(marker in text for marker in markers)
+
 def get_steam_free_games():
     """
     Fetch temporarily free games from Steam
@@ -75,6 +81,7 @@ def get_steam_free_games():
                     
                     # Only add games that appear to be temporarily free (have original price)
                     if original_price and original_price != 'Paid Game':
+                        is_dlc = _is_steam_dlc(title, description, game_url)
                         free_games.append({
                             'id': f"steam_{app_id}",
                             'title': title,
@@ -82,7 +89,8 @@ def get_steam_free_games():
                             'url': game_url,
                             'end_date': 'Check Steam page for end date',
                             'original_price': original_price,
-                            'image': image_url
+                            'image': image_url,
+                            'is_dlc': is_dlc
                         })
             except Exception as e:
                 print(f"Error parsing Steam game entry: {e}")
@@ -144,7 +152,8 @@ def get_steam_weekend_free():
                         'url': game_url,
                         'end_date': 'Check Steam page',
                         'original_price': 'Full Game Access',
-                        'image': image_url
+                        'image': image_url,
+                        'is_dlc': False
                     })
             except Exception as e:
                 print(f"Error parsing Free Weekend game: {e}")

@@ -3,6 +3,20 @@ from datetime import datetime
 
 EPIC_API_URL = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions"
 
+def _is_epic_dlc(game, title, description, product_slug):
+    """Infer whether an Epic catalog item is DLC/add-on content."""
+    offer_type = str(game.get('offerType', '')).lower()
+    categories = game.get('categories', [])
+    category_text = " ".join(
+        str(cat.get('path', '')) + " " + str(cat.get('name', ''))
+        for cat in categories
+        if isinstance(cat, dict)
+    ).lower()
+
+    text = " ".join([title, description, product_slug or '', offer_type, category_text]).lower()
+    markers = ['dlc', 'add-on', 'addon', 'expansion', 'season pass', 'soundtrack']
+    return any(marker in text for marker in markers)
+
 def get_epic_free_games():
     """
     Fetch current free games from Epic Games Store
@@ -69,6 +83,7 @@ def get_epic_free_games():
                         
                         # Create unique ID
                         game_id = game.get('id', product_slug)
+                        is_dlc = _is_epic_dlc(game, title, description, product_slug)
                         
                         free_games.append({
                             'id': game_id,
@@ -77,7 +92,8 @@ def get_epic_free_games():
                             'url': url,
                             'end_date': end_date_formatted,
                             'original_price': original_price_formatted,
-                            'image': image_url
+                            'image': image_url,
+                            'is_dlc': is_dlc
                         })
         
         # Remove duplicates based on ID

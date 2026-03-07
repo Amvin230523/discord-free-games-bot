@@ -6,7 +6,6 @@ from datetime import datetime
 from dotenv import load_dotenv
 from epic_games import get_epic_free_games
 from steam_games import get_steam_free_games
-from keep_alive import keep_alive
 import asyncio
 import traceback
 import re
@@ -25,7 +24,6 @@ with open('config.json', 'r') as f:
 
 CHANNEL_ID = config['channel_id']
 CHECK_INTERVAL = config['check_interval_hours']
-PING_ROLE_ID = config.get('ping_role_id', None)
 
 # Database file to track announced games
 DB_FILE = 'announced_games.json'
@@ -97,6 +95,34 @@ def get_user_currency(interaction: discord.Interaction = None):
         return LOCALE_TO_CURRENCY.get(locale, 'USD')
     return 'USD'
 
+def is_dlc_content(game):
+    """Best-effort DLC detector across Epic/Steam payloads."""
+    if game.get('is_dlc') is True:
+        return True
+
+    text = " ".join([
+        str(game.get('title', '')),
+        str(game.get('description', '')),
+        str(game.get('url', '')),
+        str(game.get('content_type', '')),
+    ]).lower()
+
+    dlc_markers = [
+        ' dlc',
+        'downloadable content',
+        'add-on',
+        'addon',
+        'expansion pass',
+        'season pass',
+        'soundtrack',
+    ]
+
+    return any(marker in text for marker in dlc_markers)
+
+def filter_dlc_games(games):
+    """Return only DLC/add-on entries from a game list."""
+    return [game for game in games if is_dlc_content(game)]
+
 def create_embed(game, platform, currency='USD'):
     """Create a modern rich embed for game announcement"""
     # Modern color scheme
@@ -123,8 +149,9 @@ def create_embed(game, platform, currency='USD'):
     # Main description with platform badge
     platform_emoji = "🏪" if platform == "Epic Games" else "⚙️"
     status_badge = "```ansi\n\u001b[0;32m● FREE NOW\u001b[0m\n```"
+    dlc_badge = "```ansi\n\u001b[0;33m● DLC / ADD-ON\u001b[0m\n```" if is_dlc_content(game) else ""
 
-    embed.description = f"{platform_emoji} **{platform}**\n{status_badge}"
+    embed.description = f"{platform_emoji} **{platform}**\n{status_badge}{dlc_badge}"
 
     # Add description in a modern card style
     if game.get('description'):
@@ -204,6 +231,7 @@ def create_modern_help_embed(currency='USD'):
             "```\n"
             "/commands     • View all commands\n"
             "/allgames     • Check both stores\n"
+            "/dlconly      • Show DLC giveaways\n"
             "/epicgames    • Check Epic store\n"
             "/steamgames   • Check Steam store\n"
             "```"
@@ -215,7 +243,7 @@ def create_modern_help_embed(currency='USD'):
     embed.add_field(
         name="💬 Text Commands",
         value=(
-            "> `!allgames` • `!epicgames` • `!steamgames`\n"
+            "> `!allgames` • `!dlconly` • `!epicgames` • `!steamgames`\n"
             "> `!checkgames` (Admin)\n"
             "> `!cleardb` (Admin)"
         ),
@@ -411,13 +439,7 @@ async def check_free_games():
             if game_id not in db['epic']:
                 # New free game found!
                 embed = create_embed(game, 'Epic Games')
-
-                # Prepare message with optional role ping
-                message_content = ""
-                if PING_ROLE_ID:
-                    message_content = f"<@&{PING_ROLE_ID}>"
-
-                await channel.send(content=message_content, embed=embed)
+                await channel.send(embed=embed)
                 db['epic'].append(game_id)
                 new_games_found = True
                 print(f"  ✓ Announced Epic game: {game['title']}")
@@ -432,13 +454,7 @@ async def check_free_games():
             if game_id not in db['steam']:
                 # New free game found!
                 embed = create_embed(game, 'Steam')
-
-                # Prepare message with optional role ping
-                message_content = ""
-                if PING_ROLE_ID:
-                    message_content = f"<@&{PING_ROLE_ID}>"
-
-                await channel.send(content=message_content, embed=embed)
+                await channel.send(embed=embed)
                 db['steam'].append(game_id)
                 new_games_found = True
                 print(f"  ✓ Announced Steam game: {game['title']}")
@@ -523,6 +539,42 @@ async def show_all_games(ctx):
                 
     except Exception as e:
         await ctx.send(f"Error fetching games: {e}")
+
+@bot.command(name='dlconly')
+async def show_dlc_only(ctx):
+    """Show only DLC/add-on giveaways from Epic and Steam"""
+    try:
+        epic_games = filter_dlc_games(get_epic_free_games())
+        steam_games = filter_dlc_games(get_steam_free_games())
+
+        if not epic_games and not steam_games:
+            await ctx.send("No DLC/add-on giveaways are currently detected on Epic or Steam.")
+            return
+
+        if epic_games:
+            header_embed = discord.Embed(
+                description="```ansi\n\u001b[0;34m🏪 EPIC DLC GIVEAWAYS\u001b[0m\n```",
+                color=0x2E3440
+            )
+            await ctx.send(embed=header_embed)
+            for game in epic_games:
+                embed = create_embed(game, 'Epic Games')
+                await ctx.send(embed=embed)
+                await asyncio.sleep(0.3)
+
+        if steam_games:
+            header_embed = discord.Embed(
+                description="```ansi\n\u001b[0;36m⚙️ STEAM DLC GIVEAWAYS\u001b[0m\n```",
+                color=0x1B2838
+            )
+            await ctx.send(embed=header_embed)
+            for game in steam_games:
+                embed = create_embed(game, 'Steam')
+                await ctx.send(embed=embed)
+                await asyncio.sleep(0.3)
+
+    except Exception as e:
+        await ctx.send(f"Error fetching DLC giveaways: {e}")
 
 @bot.command(name='cleardb')
 @commands.has_permissions(administrator=True)
@@ -685,11 +737,69 @@ async def slash_all_games(interaction: discord.Interaction):
         else:
             await interaction.response.send_message("⚠️ Error fetching games.", ephemeral=True)
 
+@bot.tree.command(name="dlconly", description="Show only DLC/add-on giveaways")
+async def slash_dlc_only(interaction: discord.Interaction):
+    """Show only DLC/add-on giveaways from both Epic and Steam"""
+    print("[/dlconly invoked]")
+    try:
+        await interaction.response.defer(thinking=True)
+
+        try:
+            epic_task = asyncio.to_thread(get_epic_free_games)
+            steam_task = asyncio.to_thread(get_steam_free_games)
+            epic_games, steam_games = await asyncio.gather(
+                asyncio.wait_for(epic_task, timeout=12),
+                asyncio.wait_for(steam_task, timeout=15)
+            )
+        except asyncio.TimeoutError:
+            await interaction.followup.send("⏱️ Timed out fetching game data. Please try again.", ephemeral=True)
+            return
+
+        epic_dlc = filter_dlc_games(epic_games)
+        steam_dlc = filter_dlc_games(steam_games)
+
+        if not epic_dlc and not steam_dlc:
+            embed = discord.Embed(
+                description="```ansi\n\u001b[0;33m⚠ No DLC giveaways available\u001b[0m\n```\nNo DLC/add-on giveaways currently detected.",
+                color=0xFEE75C
+            )
+            await interaction.followup.send(embed=embed)
+            return
+
+        currency = get_user_currency(interaction)
+
+        if epic_dlc:
+            header_embed = discord.Embed(
+                description="```ansi\n\u001b[0;34m🏪 EPIC DLC GIVEAWAYS\u001b[0m\n```",
+                color=0x2E3440
+            )
+            await interaction.followup.send(embed=header_embed)
+            for game in epic_dlc:
+                embed = create_embed(game, 'Epic Games', currency)
+                await interaction.followup.send(embed=embed)
+                await asyncio.sleep(0.3)
+
+        if steam_dlc:
+            header_embed = discord.Embed(
+                description="```ansi\n\u001b[0;36m⚙️ STEAM DLC GIVEAWAYS\u001b[0m\n```",
+                color=0x1B2838
+            )
+            await interaction.followup.send(embed=header_embed)
+            for game in steam_dlc:
+                embed = create_embed(game, 'Steam', currency)
+                await interaction.followup.send(embed=embed)
+                await asyncio.sleep(0.3)
+
+    except Exception as e:
+        print(f"[/dlconly error] {e}")
+        traceback.print_exception(type(e), e, e.__traceback__)
+        if interaction.response.is_done():
+            await interaction.followup.send("⚠️ Error fetching DLC giveaways.", ephemeral=True)
+        else:
+            await interaction.response.send_message("⚠️ Error fetching DLC giveaways.", ephemeral=True)
+
 # Run the bot
 if __name__ == "__main__":
-    # Start web server to keep Replit alive
-    keep_alive()
-
     TOKEN = os.getenv('DISCORD_TOKEN')
     if not TOKEN:
         print("Error: DISCORD_TOKEN not found in .env file!")
