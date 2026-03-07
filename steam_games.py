@@ -3,8 +3,55 @@ from bs4 import BeautifulSoup
 import re
 from datetime import datetime
 
-def _is_steam_dlc(title, description, game_url):
+_APP_TYPE_CACHE = {}
+
+def _normalize_app_id(raw_app_id):
+    """Extract a single numeric app id from Steam's data-ds-appid formats."""
+    if raw_app_id is None:
+        return None
+
+    app_id_text = str(raw_app_id).strip()
+    if not app_id_text:
+        return None
+
+    # Steam can provide comma-separated ids in data-ds-appid.
+    first = app_id_text.split(',')[0].strip()
+    if first.isdigit():
+        return first
+
+    match = re.search(r'\d+', first)
+    return match.group() if match else None
+
+def _get_steam_app_type(app_id):
+    """Return Steam app type (`game`, `dlc`, etc.) using appdetails API."""
+    if not app_id:
+        return ''
+
+    if app_id in _APP_TYPE_CACHE:
+        return _APP_TYPE_CACHE[app_id]
+
+    try:
+        url = "https://store.steampowered.com/api/appdetails"
+        response = requests.get(url, params={'appids': app_id, 'l': 'en'}, timeout=8)
+        response.raise_for_status()
+        data = response.json()
+
+        details = data.get(str(app_id), {})
+        if details.get('success'):
+            app_type = str(details.get('data', {}).get('type', '')).lower()
+            _APP_TYPE_CACHE[app_id] = app_type
+            return app_type
+    except Exception:
+        pass
+
+    _APP_TYPE_CACHE[app_id] = ''
+    return ''
+
+def _is_steam_dlc(title, description, game_url, app_id=None):
     """Infer whether a Steam entry is DLC/add-on content."""
+    if _get_steam_app_type(app_id) == 'dlc':
+        return True
+
     text = f"{title} {description} {game_url}".lower()
     markers = [' dlc', '/dlc/', 'add-on', 'addon', 'expansion', 'season pass', 'soundtrack']
     return any(marker in text for marker in markers)
@@ -42,7 +89,7 @@ def get_steam_free_games():
                 
                 # Get game URL and ID
                 game_url = entry.get('href', '').split('?')[0]  # Remove query params
-                app_id = entry.get('data-ds-appid', '')
+                app_id = _normalize_app_id(entry.get('data-ds-appid', ''))
                 
                 # Check if it's actually free (was paid, now free)
                 price_elem = entry.find('div', class_='discount_final_price')
@@ -81,7 +128,7 @@ def get_steam_free_games():
                     
                     # Only add games that appear to be temporarily free (have original price)
                     if original_price and original_price != 'Paid Game':
-                        is_dlc = _is_steam_dlc(title, description, game_url)
+                        is_dlc = _is_steam_dlc(title, description, game_url, app_id)
                         free_games.append({
                             'id': f"steam_{app_id}",
                             'title': title,
@@ -140,7 +187,7 @@ def get_steam_weekend_free():
                     
                     title = title_elem.text.strip()
                     game_url = entry.get('href', '').split('?')[0]
-                    app_id = entry.get('data-ds-appid', '')
+                    app_id = _normalize_app_id(entry.get('data-ds-appid', ''))
                     
                     img_elem = entry.find('img')
                     image_url = img_elem.get('src', '') if img_elem else None

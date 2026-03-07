@@ -433,7 +433,7 @@ async def check_free_games():
 
     # Check Epic Games
     try:
-        epic_games = get_epic_free_games()
+        epic_games = await asyncio.wait_for(asyncio.to_thread(get_epic_free_games), timeout=20)
         for game in epic_games:
             game_id = game['id']
             if game_id not in db['epic']:
@@ -443,12 +443,14 @@ async def check_free_games():
                 db['epic'].append(game_id)
                 new_games_found = True
                 print(f"  ✓ Announced Epic game: {game['title']}")
+    except asyncio.TimeoutError:
+        print("  ✗ Epic check timed out")
     except Exception as e:
         print(f"  ✗ Error checking Epic Games: {e}")
 
     # Check Steam
     try:
-        steam_games = get_steam_free_games()
+        steam_games = await asyncio.wait_for(asyncio.to_thread(get_steam_free_games), timeout=25)
         for game in steam_games:
             game_id = game['id']
             if game_id not in db['steam']:
@@ -458,6 +460,8 @@ async def check_free_games():
                 db['steam'].append(game_id)
                 new_games_found = True
                 print(f"  ✓ Announced Steam game: {game['title']}")
+    except asyncio.TimeoutError:
+        print("  ✗ Steam check timed out")
     except Exception as e:
         print(f"  ✗ Error checking Steam: {e}")
 
