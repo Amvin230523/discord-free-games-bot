@@ -444,7 +444,6 @@ async def check_free_games():
 
     db = load_database()
     new_games_found = False
-    ping_sent = False
 
     # Check Epic Games
     try:
@@ -453,14 +452,11 @@ async def check_free_games():
             game_id = game['id']
             if game_id not in db['epic']:
                 # New free game found!
-                # Ping everyone once per check run before sending embeds
-                if not ping_sent:
-                    try:
-                        await channel.send(content="@everyone New free game(s) available!", allowed_mentions=discord.AllowedMentions(everyone=True))
-                    except Exception:
-                        # If pinging fails (permissions), continue without stopping announcements
-                        pass
-                    ping_sent = True
+                try:
+                    await channel.send(content=f"@everyone New free game available: {game.get('title', 'Untitled')}", allowed_mentions=discord.AllowedMentions(everyone=True))
+                except Exception:
+                    # If pinging fails (permissions), continue without stopping announcements
+                    pass
 
                 embed = create_embed(game, 'Epic Games')
                 await channel.send(embed=embed)
@@ -479,13 +475,10 @@ async def check_free_games():
             game_id = game['id']
             if game_id not in db['steam']:
                 # New free game found!
-                # Ping everyone once per check run before sending embeds
-                if not ping_sent:
-                    try:
-                        await channel.send(content="@everyone New free game(s) available!", allowed_mentions=discord.AllowedMentions(everyone=True))
-                    except Exception:
-                        pass
-                    ping_sent = True
+                try:
+                    await channel.send(content=f"@everyone New free game available: {game.get('title', 'Untitled')}", allowed_mentions=discord.AllowedMentions(everyone=True))
+                except Exception:
+                    pass
 
                 embed = create_embed(game, 'Steam')
                 await channel.send(embed=embed)
@@ -674,7 +667,11 @@ async def slash_epic(interaction: discord.Interaction):
     """Show current Epic Games free games via slash command"""
     print("[/epicgames invoked]")
     try:
-        await interaction.response.defer(thinking=True)
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.defer(thinking=True)
+        except Exception as e:
+            print(f"[/epicgames defer failed] {e}")
         # Timeout the fetch so we always answer
         try:
             games = await asyncio.wait_for(asyncio.to_thread(get_epic_free_games), timeout=12)
@@ -685,17 +682,24 @@ async def slash_epic(interaction: discord.Interaction):
     except Exception as e:
         print(f"[/epicgames error] {e}")
         traceback.print_exception(type(e), e, e.__traceback__)
-        if interaction.response.is_done():
-            await interaction.followup.send("⚠️ Error fetching Epic Games.", ephemeral=True)
-        else:
-            await interaction.response.send_message("⚠️ Error fetching Epic Games.", ephemeral=True)
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send("⚠️ Error fetching Epic Games.", ephemeral=True)
+            else:
+                await interaction.response.send_message("⚠️ Error fetching Epic Games.", ephemeral=True)
+        except Exception as send_err:
+            print("[Error sending error message]", send_err)
 
 @bot.tree.command(name="steamgames", description="Show current Steam free games")
 async def slash_steam(interaction: discord.Interaction):
     """Show current Steam free games via slash command"""
     print("[/steamgames invoked]")
     try:
-        await interaction.response.defer(thinking=True)
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.defer(thinking=True)
+        except Exception as e:
+            print(f"[/steamgames defer failed] {e}")
         try:
             games = await asyncio.wait_for(asyncio.to_thread(get_steam_free_games), timeout=15)
         except asyncio.TimeoutError:
@@ -705,17 +709,24 @@ async def slash_steam(interaction: discord.Interaction):
     except Exception as e:
         print(f"[/steamgames error] {e}")
         traceback.print_exception(type(e), e, e.__traceback__)
-        if interaction.response.is_done():
-            await interaction.followup.send("⚠️ Error fetching Steam games.", ephemeral=True)
-        else:
-            await interaction.response.send_message("⚠️ Error fetching Steam games.", ephemeral=True)
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send("⚠️ Error fetching Steam games.", ephemeral=True)
+            else:
+                await interaction.response.send_message("⚠️ Error fetching Steam games.", ephemeral=True)
+        except Exception as send_err:
+            print("[Error sending error message]", send_err)
 
 @bot.tree.command(name="allgames", description="Show all free games from both Epic and Steam")
 async def slash_all_games(interaction: discord.Interaction):
     """Show all free games from both Epic and Steam via slash command"""
     print("[/allgames invoked]")
     try:
-        await interaction.response.defer(thinking=True)
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.defer(thinking=True)
+        except Exception as e:
+            print(f"[/allgames defer failed] {e}")
         
         # Fetch both platforms concurrently
         try:
@@ -768,17 +779,24 @@ async def slash_all_games(interaction: discord.Interaction):
     except Exception as e:
         print(f"[/allgames error] {e}")
         traceback.print_exception(type(e), e, e.__traceback__)
-        if interaction.response.is_done():
-            await interaction.followup.send("⚠️ Error fetching games.", ephemeral=True)
-        else:
-            await interaction.response.send_message("⚠️ Error fetching games.", ephemeral=True)
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send("⚠️ Error fetching games.", ephemeral=True)
+            else:
+                await interaction.response.send_message("⚠️ Error fetching games.", ephemeral=True)
+        except Exception as send_err:
+            print("[Error sending error message]", send_err)
 
 @bot.tree.command(name="dlconly", description="Show only DLC/add-on giveaways")
 async def slash_dlc_only(interaction: discord.Interaction):
     """Show only DLC/add-on giveaways from both Epic and Steam"""
     print("[/dlconly invoked]")
     try:
-        await interaction.response.defer(thinking=True)
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.defer(thinking=True)
+        except Exception as e:
+            print(f"[/dlconly defer failed] {e}")
 
         try:
             epic_task = asyncio.to_thread(get_epic_free_games)
@@ -829,10 +847,13 @@ async def slash_dlc_only(interaction: discord.Interaction):
     except Exception as e:
         print(f"[/dlconly error] {e}")
         traceback.print_exception(type(e), e, e.__traceback__)
-        if interaction.response.is_done():
-            await interaction.followup.send("⚠️ Error fetching DLC giveaways.", ephemeral=True)
-        else:
-            await interaction.response.send_message("⚠️ Error fetching DLC giveaways.", ephemeral=True)
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send("⚠️ Error fetching DLC giveaways.", ephemeral=True)
+            else:
+                await interaction.response.send_message("⚠️ Error fetching DLC giveaways.", ephemeral=True)
+        except Exception as send_err:
+            print("[Error sending error message]", send_err)
 
 # Run the bot
 if __name__ == "__main__":

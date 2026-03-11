@@ -346,3 +346,201 @@ Registered slash command: /dlconly - Show only DLC/add-on giveaways
 [2026-03-11 21:55:02] [INFO    ] discord.gateway: Shard ID None has successfully RESUMED session a45738ee8c63cc4af2b514e454556f57.
 [2026-03-11 21:55:20.052264] Checking for free games...
   No new free games found.
+D:\Projects\Game bot\discord-free-games-bot\bot.py:25: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  print(f"{_dt.utcnow().isoformat()}Z - Bot process started (logging redirected)")
+2026-03-11T14:17:14.342091Z - Bot process started (logging redirected)
+[2026-03-11 22:17:14] [INFO    ] discord.client: logging in using static token
+[2026-03-11 22:17:16] [INFO    ] discord.gateway: Shard ID None has connected to Gateway (Session ID: 0ce0c9149a3dd0a127afa350dfdce710).
+Game Catcher#0114 has connected to Discord!
+Bot is in 2 server(s)
+Synced 5 slash command(s)
+Started checking for free games every 1 hour(s)
+Registered slash command: /commands - Show all available bot commands
+Registered slash command: /epicgames - Show current Epic Games free games
+Registered slash command: /steamgames - Show current Steam free games
+Registered slash command: /allgames - Show all free games from both Epic and Steam
+Registered slash command: /dlconly - Show only DLC/add-on giveaways
+[2026-03-11 22:17:18.577996] Checking for free games...
+  No new free games found.
+[/allgames invoked]
+[/allgames invoked]
+[/allgames error] 404 Not Found (error code: 10062): Unknown interaction
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\bot.py", line 700, in slash_all_games
+    games = await asyncio.wait_for(asyncio.to_thread(get_steam_free_games), timeout=15)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\interactions.py", line 892, in defer
+    response = await adapter.create_interaction_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\webhook\async_.py", line 224, in request
+    raise NotFound(response, data)
+discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+[Slash Command Error] CommandInvokeError("Command 'allgames' raised an exception: NotFound: 404 Not Found (error code: 10062): Unknown interaction")
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\bot.py", line 700, in slash_all_games
+    games = await asyncio.wait_for(asyncio.to_thread(get_steam_free_games), timeout=15)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\interactions.py", line 892, in defer
+    response = await adapter.create_interaction_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\webhook\async_.py", line 224, in request
+    raise NotFound(response, data)
+discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\commands.py", line 859, in _do_call
+    return await self._callback(interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\bot.py", line 756, in slash_all_games
+    # Send Steam Games
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\webhook\async_.py", line 224, in request
+    raise NotFound(response, data)
+discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'allgames' raised an exception: NotFound: 404 Not Found (error code: 10062): Unknown interaction
+[Error sending error message] 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+[/allgames invoked]
+[/allgames invoked]
+[/allgames error] 404 Not Found (error code: 10062): Unknown interaction
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\bot.py", line 718, in slash_all_games
+    asyncio.wait_for(epic_task, timeout=12),
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\interactions.py", line 892, in defer
+    response = await adapter.create_interaction_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\webhook\async_.py", line 224, in request
+    raise NotFound(response, data)
+discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+[Slash Command Error] CommandInvokeError("Command 'allgames' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.")
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\bot.py", line 718, in slash_all_games
+    asyncio.wait_for(epic_task, timeout=12),
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\interactions.py", line 892, in defer
+    response = await adapter.create_interaction_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\webhook\async_.py", line 224, in request
+    raise NotFound(response, data)
+discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\commands.py", line 859, in _do_call
+    return await self._callback(interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\bot.py", line 774, in slash_all_games
+    await interaction.response.defer(thinking=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'allgames' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+[Error sending error message] 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+[/allgames invoked]
+[/allgames invoked]
+[/allgames error] 404 Not Found (error code: 10062): Unknown interaction
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\bot.py", line 718, in slash_all_games
+    color=0xFEE75C
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\interactions.py", line 892, in defer
+    response = await adapter.create_interaction_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\webhook\async_.py", line 224, in request
+    raise NotFound(response, data)
+discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+[Slash Command Error] CommandInvokeError("Command 'allgames' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.")
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\bot.py", line 718, in slash_all_games
+    color=0xFEE75C
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\interactions.py", line 892, in defer
+    response = await adapter.create_interaction_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\webhook\async_.py", line 224, in request
+    raise NotFound(response, data)
+discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\commands.py", line 859, in _do_call
+    return await self._callback(interaction, **params)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\bot.py", line 774, in slash_all_games
+    return
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\interactions.py", line 1085, in send_message
+    data = await adapter.create_interaction_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\webhook\async_.py", line 226, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\tree.py", line 1302, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\commands.py", line 884, in _invoke_with_namespace
+    return await self._do_call(interaction, transformed_values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\Game bot\discord-free-games-bot\.venv\Lib\site-packages\discord\app_commands\commands.py", line 877, in _do_call
+    raise CommandInvokeError(self, e) from e
+discord.app_commands.errors.CommandInvokeError: Command 'allgames' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+[Error sending error message] 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
