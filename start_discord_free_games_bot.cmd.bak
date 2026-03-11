@@ -1,0 +1,3 @@
+@echo off
+cd /d "D:\Projects\Game bot\discord-free-games-bot"
+"D:\Projects\Game bot\discord-free-games-bot\.venv\Scripts\python.exe" "D:\Projects\Game bot\discord-free-games-bot\bot.py"

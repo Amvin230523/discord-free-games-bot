@@ -9,9 +9,23 @@ from steam_games import get_steam_free_games
 import asyncio
 import traceback
 import re
+import sys
+import pathlib
+from datetime import datetime as _dt
 
 # Load environment variables
 load_dotenv()
+
+# Redirect stdout/stderr to bot.log so prints are captured when using pythonw.exe
+try:
+    log_path = pathlib.Path(__file__).parent / 'bot.log'
+    log_file = open(log_path, 'a', encoding='utf-8', buffering=1)
+    sys.stdout = log_file
+    sys.stderr = log_file
+    print(f"{_dt.utcnow().isoformat()}Z - Bot process started (logging redirected)")
+except Exception:
+    # If logging redirect fails, continue without crashing
+    pass
 
 # Bot setup
 intents = discord.Intents.default()
@@ -430,6 +444,7 @@ async def check_free_games():
 
     db = load_database()
     new_games_found = False
+    ping_sent = False
 
     # Check Epic Games
     try:
@@ -438,6 +453,15 @@ async def check_free_games():
             game_id = game['id']
             if game_id not in db['epic']:
                 # New free game found!
+                # Ping everyone once per check run before sending embeds
+                if not ping_sent:
+                    try:
+                        await channel.send(content="@everyone New free game(s) available!", allowed_mentions=discord.AllowedMentions(everyone=True))
+                    except Exception:
+                        # If pinging fails (permissions), continue without stopping announcements
+                        pass
+                    ping_sent = True
+
                 embed = create_embed(game, 'Epic Games')
                 await channel.send(embed=embed)
                 db['epic'].append(game_id)
@@ -455,6 +479,14 @@ async def check_free_games():
             game_id = game['id']
             if game_id not in db['steam']:
                 # New free game found!
+                # Ping everyone once per check run before sending embeds
+                if not ping_sent:
+                    try:
+                        await channel.send(content="@everyone New free game(s) available!", allowed_mentions=discord.AllowedMentions(everyone=True))
+                    except Exception:
+                        pass
+                    ping_sent = True
+
                 embed = create_embed(game, 'Steam')
                 await channel.send(embed=embed)
                 db['steam'].append(game_id)
