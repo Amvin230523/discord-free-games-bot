@@ -544,3 +544,21 @@ Traceback (most recent call last):
     raise CommandInvokeError(self, e) from e
 discord.app_commands.errors.CommandInvokeError: Command 'allgames' raised an exception: HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
 [Error sending error message] 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
+D:\Projects\Game bot\discord-free-games-bot\bot.py:25: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  print(f"{_dt.utcnow().isoformat()}Z - Bot process started (logging redirected)")
+2026-03-11T14:26:05.429707Z - Bot process started (logging redirected)
+[2026-03-11 22:26:05] [INFO    ] discord.client: logging in using static token
+[2026-03-11 22:26:07] [INFO    ] discord.gateway: Shard ID None has connected to Gateway (Session ID: bc881e9ab6e324befc9b68e55e81afbd).
+Game Catcher#0114 has connected to Discord!
+Bot is in 2 server(s)
+Synced 5 slash command(s)
+Started checking for free games every 1 hour(s)
+Registered slash command: /commands - Show all available bot commands
+Registered slash command: /epicgames - Show current Epic Games free games
+Registered slash command: /steamgames - Show current Steam free games
+Registered slash command: /allgames - Show all free games from both Epic and Steam
+Registered slash command: /dlconly - Show only DLC/add-on giveaways
+[2026-03-11 22:26:09.540781] Checking for free games...
+  No new free games found.
+[/allgames invoked]
+[/allgames invoked]
